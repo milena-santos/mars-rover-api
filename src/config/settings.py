@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "drf_spectacular",
     "probes.apps.ProbesConfig",
 ]
 
@@ -43,7 +44,18 @@ REST_FRAMEWORK = {
     "DEFAULT_PARSER_CLASSES": [
         "rest_framework.parsers.JSONParser",
     ],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "probes.api.exception_handler.domain_exception_handler",
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Mars Rover API",
+    "DESCRIPTION": (
+        "REST API for launching and controlling robotic probes "
+        "on a rectangular Martian plateau."
+    ),
+    "VERSION": "0.1.0",
+    "SERVE_INCLUDE_SCHEMA": False,
 }
 
 MIDDLEWARE = [

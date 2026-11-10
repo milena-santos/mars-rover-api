@@ -29,6 +29,9 @@ Move body:
 {"commands": "MRM"}
 ```
 
+Interactive OpenAPI docs are available at `/api/docs/` when the server is running.
+The raw schema is at `/api/schema/`.
+
 ## Requirements
 
 - Python 3.13
@@ -41,9 +44,13 @@ Move body:
 cp .env.example .env
 docker compose up -d postgres
 uv sync --group dev
+uv run python src/manage.py migrate
 uv run python src/manage.py check
 uv run pytest
+uv run python src/manage.py runserver
 ```
+
+Then open [http://127.0.0.1:8000/api/docs/](http://127.0.0.1:8000/api/docs/).
 
 Optional quality checks:
 

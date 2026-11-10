@@ -6,14 +6,14 @@ from typing import Any
 
 from rest_framework import serializers
 
-from probes.domain.direction import Direction
+from probes.domain.direction import DIRECTION_VALUES
 from probes.domain.probe import Probe
 
 
 class LaunchProbeSerializer(serializers.Serializer[dict[str, Any]]):
     x = serializers.IntegerField(min_value=0)
     y = serializers.IntegerField(min_value=0)
-    direction = serializers.ChoiceField(choices=[item.value for item in Direction])
+    direction = serializers.ChoiceField(choices=DIRECTION_VALUES)
 
 
 class MoveProbeSerializer(serializers.Serializer[dict[str, Any]]):
@@ -24,7 +24,7 @@ class ProbeStateSerializer(serializers.Serializer[dict[str, Any]]):
     id = serializers.UUIDField()
     x = serializers.IntegerField()
     y = serializers.IntegerField()
-    direction = serializers.ChoiceField(choices=[item.value for item in Direction])
+    direction = serializers.ChoiceField(choices=DIRECTION_VALUES)
 
     @classmethod
     def from_probe(cls, probe: Probe) -> dict[str, object]:
@@ -34,3 +34,7 @@ class ProbeStateSerializer(serializers.Serializer[dict[str, Any]]):
             "y": probe.position.y,
             "direction": probe.direction.value,
         }
+
+
+class ProbeListResponseSerializer(serializers.Serializer[dict[str, Any]]):
+    probes = ProbeStateSerializer(many=True)
