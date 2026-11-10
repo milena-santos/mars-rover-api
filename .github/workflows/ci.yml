@@ -69,6 +69,17 @@ jobs:
     name: Types
     runs-on: ubuntu-latest
 
+    env:
+      SECRET_KEY: ci-only-secret-key
+      DEBUG: "False"
+      ALLOWED_HOSTS: localhost,127.0.0.1,testserver
+      DATABASE_URL: postgres://mars_rover:mars_rover@localhost:5432/mars_rover
+      SECURE_SSL_REDIRECT: "False"
+      SESSION_COOKIE_SECURE: "False"
+      CSRF_COOKIE_SECURE: "False"
+      USE_SECURE_PROXY_SSL_HEADER: "False"
+      DJANGO_SETTINGS_MODULE: config.settings
+
     steps:
       - name: Check out repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
