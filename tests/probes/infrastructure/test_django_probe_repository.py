@@ -56,8 +56,11 @@ def test_list_all_returns_probes_in_creation_order() -> None:
     repository.add(second)
 
     probes = repository.list_all()
+    probe_ids = []
+    for probe in probes:
+        probe_ids.append(probe.id)
 
-    assert [probe.id for probe in probes] == [first.id, second.id]
+    assert probe_ids == [first.id, second.id]
 
 
 @pytest.mark.django_db

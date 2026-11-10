@@ -40,3 +40,18 @@ class Direction(StrEnum):
         }
         delta_x, delta_y = deltas[self]
         return Position(x=position.x + delta_x, y=position.y + delta_y)
+
+
+DIRECTION_VALUES = (
+    Direction.NORTH.value,
+    Direction.EAST.value,
+    Direction.SOUTH.value,
+    Direction.WEST.value,
+)
+
+DIRECTION_CHOICES = (
+    (Direction.NORTH.value, Direction.NORTH.value),
+    (Direction.EAST.value, Direction.EAST.value),
+    (Direction.SOUTH.value, Direction.SOUTH.value),
+    (Direction.WEST.value, Direction.WEST.value),
+)

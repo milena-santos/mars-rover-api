@@ -5,9 +5,32 @@ plateau on Mars.
 
 ## Project status
 
-The Django project foundation, probe domain logic, and PostgreSQL persistence
-adapter are in place. HTTP endpoints, application image, and deployment will
-be delivered in later pull requests.
+The Django project foundation, probe domain logic, PostgreSQL persistence, and
+REST endpoints are in place. Application image and deployment will be delivered
+in later pull requests.
+
+## API
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `POST` | `/api/probes/` | Launch a probe and configure its plateau |
+| `POST` | `/api/probes/{id}/commands/` | Execute an atomic command sequence |
+| `GET` | `/api/probes/` | List all probes |
+
+Launch body:
+
+```json
+{"x": 5, "y": 5, "direction": "NORTH"}
+```
+
+Move body:
+
+```json
+{"commands": "MRM"}
+```
+
+Interactive OpenAPI docs are available at `/api/docs/` when the server is running.
+The raw schema is at `/api/schema/`.
 
 ## Requirements
 
@@ -21,9 +44,13 @@ be delivered in later pull requests.
 cp .env.example .env
 docker compose up -d postgres
 uv sync --group dev
+uv run python src/manage.py migrate
 uv run python src/manage.py check
 uv run pytest
+uv run python src/manage.py runserver
 ```
+
+Then open [http://127.0.0.1:8000/api/docs/](http://127.0.0.1:8000/api/docs/).
 
 Optional quality checks:
 

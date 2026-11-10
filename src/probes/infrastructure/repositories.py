@@ -31,7 +31,10 @@ class DjangoProbeRepository:
         return self._to_domain(record)
 
     def list_all(self) -> list[Probe]:
-        return [self._to_domain(record) for record in ProbeRecord.objects.all()]
+        probes = []
+        for record in ProbeRecord.objects.all():
+            probes.append(self._to_domain(record))
+        return probes
 
     def save(self, probe: Probe) -> None:
         try:
