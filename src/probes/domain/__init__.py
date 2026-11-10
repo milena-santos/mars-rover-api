@@ -6,6 +6,7 @@ from probes.domain.exceptions import (
     InvalidCommandError,
     InvalidPlateauError,
     OutOfBoundsError,
+    ProbeNotFoundError,
 )
 from probes.domain.plateau import Plateau
 from probes.domain.position import Position
@@ -20,4 +21,5 @@ __all__ = [
     "Plateau",
     "Position",
     "Probe",
+    "ProbeNotFoundError",
 ]

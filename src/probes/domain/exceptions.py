@@ -11,3 +11,7 @@ class InvalidPlateauError(ValueError):
 
 class OutOfBoundsError(ValueError):
     """Raised when a probe would leave the plateau."""
+
+
+class ProbeNotFoundError(LookupError):
+    """Raised when a probe id does not exist in storage."""

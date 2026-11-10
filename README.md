@@ -5,9 +5,9 @@ plateau on Mars.
 
 ## Project status
 
-The Django project foundation is in place with PostgreSQL as the only
-supported database. Probe domain logic, HTTP endpoints, application image,
-and deployment will be delivered in later pull requests.
+The Django project foundation, probe domain logic, and PostgreSQL persistence
+adapter are in place. HTTP endpoints, application image, and deployment will
+be delivered in later pull requests.
 
 ## Requirements
 
