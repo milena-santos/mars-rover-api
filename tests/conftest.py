@@ -3,6 +3,11 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
+
+import environ
+
+environ.Env.read_env(Path(__file__).resolve().parents[1] / ".env")
 
 os.environ.setdefault("SECRET_KEY", "test-only-secret-key")
 os.environ.setdefault("DEBUG", "False")

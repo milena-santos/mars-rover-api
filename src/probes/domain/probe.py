@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from uuid import UUID, uuid4
 
 from probes.domain.command import Command
 from probes.domain.direction import Direction
@@ -16,6 +17,7 @@ class Probe:
     plateau: Plateau
     direction: Direction
     position: Position = field(default_factory=lambda: Position(x=0, y=0))
+    id: UUID = field(default_factory=uuid4)
 
     def __post_init__(self) -> None:
         if not self.plateau.contains(self.position):
