@@ -1,0 +1,105 @@
+name: Open release pull request
+
+on:
+  push:
+    branches:
+      - develop
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: release-pr-develop-to-main
+  cancel-in-progress: true
+
+jobs:
+  open-release-pull-request:
+    name: Open release pull request
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Create or update release pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if ! git rev-parse --verify origin/main >/dev/null 2>&1; then
+            echo "origin/main was not found."
+            exit 1
+          fi
+
+          if git merge-base --is-ancestor origin/develop origin/main; then
+            echo "develop is already contained in main. No release pull request needed."
+            exit 0
+          fi
+
+          commit_list="$(
+            git log \
+              --pretty=format:'- %s (%h)' \
+              origin/main..origin/develop
+          )"
+
+          body_file="$(mktemp)"
+          cat >"$body_file" <<EOF
+          ## Context
+
+          Promote the current \`develop\` branch into \`main\`.
+
+          ## Changes
+
+          ${commit_list}
+
+          ## How to validate
+
+          \`\`\`bash
+          uv sync --group dev
+          uv run ruff format --check .
+          uv run ruff check .
+          uv run mypy
+          uv run python src/manage.py check
+          uv run pytest
+          \`\`\`
+
+          ## Risks and deployment notes
+
+          No production deploy workflow is connected yet. Merging this pull
+          request only updates \`main\` and triggers the GitHub Release workflow.
+
+          ## Checklist
+
+          - [x] The pull request has a focused scope
+          - [x] Tests were added or updated when applicable
+          - [x] Documentation was updated when applicable
+          - [x] The pull request title follows Conventional Commits
+          EOF
+
+          existing_pr="$(
+            gh pr list \
+              --head develop \
+              --base main \
+              --state open \
+              --json number \
+              --jq '.[0].number // empty'
+          )"
+
+          if [[ -n "$existing_pr" ]]; then
+            gh pr edit "$existing_pr" \
+              --title "release: promote develop to main" \
+              --body-file "$body_file"
+            echo "Updated pull request #$existing_pr."
+            exit 0
+          fi
+
+          gh pr create \
+            --base main \
+            --head develop \
+            --title "release: promote develop to main" \
+            --body-file "$body_file"
