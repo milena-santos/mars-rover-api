@@ -31,6 +31,7 @@ addopts = [
     "--cov-report=term-missing",
     "--cov-report=xml",
     "--cov-branch",
+    "--cov-fail-under=80",
 ]
 
 [tool.coverage.run]
@@ -40,6 +41,7 @@ source = ["config", "probes"]
 [tool.coverage.report]
 show_missing = true
 skip_covered = false
+fail_under = 80
 
 [tool.ruff]
 target-version = "py313"
