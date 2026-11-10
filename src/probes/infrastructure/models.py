@@ -6,7 +6,7 @@ import uuid
 
 from django.db import models
 
-from probes.domain.direction import Direction
+from probes.domain.direction import DIRECTION_CHOICES
 
 
 class ProbeRecord(models.Model):
@@ -15,7 +15,7 @@ class ProbeRecord(models.Model):
     y = models.IntegerField()
     direction = models.CharField(
         max_length=5,
-        choices=[(item.value, item.value) for item in Direction],
+        choices=DIRECTION_CHOICES,
     )
     plateau_max_x = models.PositiveIntegerField()
     plateau_max_y = models.PositiveIntegerField()
