@@ -5,27 +5,49 @@ plateau on Mars.
 
 ## Project status
 
-The project is under active development. Its implementation is being delivered
-in small, reviewable pull requests.
+The Django project foundation is in place with PostgreSQL as the only
+supported database. Probe domain logic, HTTP endpoints, application image,
+and deployment will be delivered in later pull requests.
 
-## Planned capabilities
-
-- Launch a probe at `(0, 0)` with a configured plateau and direction.
-- Rotate a probe left or right.
-- Move a probe forward without leaving the plateau.
-- Execute command sequences atomically.
-- List the current position and direction of every probe.
-
-## Planned technology
+## Requirements
 
 - Python 3.13
-- Django 5.2 LTS
-- Django REST Framework
-- PostgreSQL
-- Pytest and Coverage.py
-- Ruff and Mypy
-- Docker
-- GitHub Actions
+- [uv](https://docs.astral.sh/uv/)
+- [Docker](https://docs.docker.com/get-docker/) and Docker Compose
+
+## Local setup
+
+```bash
+cp .env.example .env
+docker compose up -d postgres
+uv sync --group dev
+uv run python src/manage.py check
+uv run pytest
+```
+
+Optional quality checks:
+
+```bash
+uv run ruff format .
+uv run ruff check .
+uv run mypy
+```
+
+Stop the local database with:
+
+```bash
+docker compose down
+```
+
+## Settings
+
+There is a single settings module: `config.settings`.
+
+Runtime differences between local, CI, staging, and production come only from
+environment variables. Every required variable must be set explicitly; there
+are no configuration fallbacks.
+
+Local development and CI use the PostgreSQL service defined in `compose.yaml`.
 
 ## Development workflow
 
@@ -49,13 +71,16 @@ hotfix/short-description
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the complete contribution workflow.
 
-## Documentation
+## Planned technology
 
-Setup, architecture, API usage, testing, and deployment instructions will be
-added alongside their respective implementation phases. The README does not
-describe features that are not yet available.
+- Django 5.2 LTS
+- Django REST Framework
+- PostgreSQL
+- Pytest and Coverage.py
+- Ruff and Mypy
+- Docker
+- GitHub Actions
 
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
-
