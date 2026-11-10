@@ -27,6 +27,7 @@ testpaths = ["tests"]
 addopts = [
     "--strict-markers",
     "--cov=config",
+    "--cov=probes",
     "--cov-report=term-missing",
     "--cov-report=xml",
     "--cov-branch",
@@ -34,7 +35,7 @@ addopts = [
 
 [tool.coverage.run]
 branch = true
-source = ["config"]
+source = ["config", "probes"]
 
 [tool.coverage.report]
 show_missing = true
@@ -57,7 +58,7 @@ mypy_path = "src"
 plugins = ["mypy_django_plugin.main"]
 strict = true
 warn_unused_ignores = true
-packages = ["config"]
+packages = ["config", "probes"]
 
 [tool.django-stubs]
 django_settings_module = "config.settings"
