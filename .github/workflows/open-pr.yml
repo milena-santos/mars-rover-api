@@ -26,7 +26,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Create draft pull request
         env:
@@ -34,6 +34,8 @@ jobs:
           HEAD_BRANCH: ${{ github.ref_name }}
         shell: bash
         run: |
+          set -euo pipefail
+
           base_branch="develop"
 
           case "$HEAD_BRANCH" in
@@ -54,7 +56,22 @@ jobs:
             exit 0
           fi
 
-          title="$(git log -1 --pretty=%s)"
+          branch_type="${HEAD_BRANCH%%/*}"
+          branch_slug="${HEAD_BRANCH#*/}"
+          branch_words="${branch_slug//-/ }"
+
+          case "$branch_type" in
+            feature) title_prefix="feat" ;;
+            fix) title_prefix="fix" ;;
+            chore) title_prefix="chore" ;;
+            docs) title_prefix="docs" ;;
+            refactor) title_prefix="refactor" ;;
+            test) title_prefix="test" ;;
+            hotfix) title_prefix="fix" ;;
+            *) title_prefix="$branch_type" ;;
+          esac
+
+          title="${title_prefix}: ${branch_words}"
 
           gh pr create \
             --base "$base_branch" \

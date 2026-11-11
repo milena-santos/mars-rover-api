@@ -13,6 +13,7 @@ environ.Env.read_env(REPO_DIR / ".env")
 SECRET_KEY = env("SECRET_KEY")
 DEBUG = env.bool("DEBUG")
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS")
 DATABASES = {"default": env.db("DATABASE_URL")}
 
 SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT")

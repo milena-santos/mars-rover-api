@@ -6,8 +6,8 @@ plateau on Mars.
 ## Project status
 
 The Django project foundation, probe domain logic, PostgreSQL persistence,
-REST endpoints, application image, and local Docker Compose stack are in
-place. Managed cloud environments will be delivered in later pull requests.
+REST endpoints, application image, local Docker Compose stack, and Render
+Blueprint for staging and production are in place.
 
 ## API
 
@@ -15,6 +15,7 @@ place. Managed cloud environments will be delivered in later pull requests.
 | --- | --- | --- |
 | `GET` | `/health/` | Process and database health check |
 | `POST` | `/api/probes/` | Launch a probe and configure its plateau |
+| `GET` | `/api/probes/{id}/` | Get one probe by id |
 | `POST` | `/api/probes/{id}/commands/` | Execute an atomic command sequence |
 | `GET` | `/api/probes/` | List all probes |
 
@@ -101,7 +102,45 @@ docker build -t mars-rover-api .
 ```
 
 The image entrypoint waits for the database, runs migrations, collects static
-files, and then starts Gunicorn on port `8000`.
+files, and then starts Gunicorn. The process listens on `PORT` when that
+variable is set, otherwise on `8000`.
+
+## Render environments
+
+`render.yaml` defines one Render project with two environments:
+
+| Environment | Git branch | Deploy trigger |
+| --- | --- | --- |
+| staging | `develop` | after CI checks pass |
+| production | `main` | after CI checks pass |
+
+### First-time setup
+
+1. Push this repository to GitHub.
+2. In Render, create a Blueprint from `render.yaml`.
+3. After the first deploy, copy each service hostname and HTTPS origin.
+4. Set both values per environment with the exact service identity only:
+   - staging `ALLOWED_HOSTS`: `your-staging-host.onrender.com`
+   - staging `CSRF_TRUSTED_ORIGINS`: `https://your-staging-host.onrender.com`
+   - production `ALLOWED_HOSTS`: `your-production-host.onrender.com`
+   - production `CSRF_TRUSTED_ORIGINS`: `https://your-production-host.onrender.com`
+5. Do not use wildcards such as `.onrender.com` or `*`.
+6. Confirm `/health/` and `/api/docs/` on staging and production.
+
+Free Render Postgres instances are ephemeral. Upgrade the database plan if you
+need durable data.
+
+## CI and CD
+
+GitHub Actions runs formatting, linting, type checks, and tests on pull
+requests and pushes.
+
+Continuous delivery is handled by Render:
+
+- merge to `develop` → CI passes → staging deploy
+- merge to `main` → CI passes → production deploy + GitHub Release
+
+`develop` and `main` require the CI checks to pass before merge.
 
 ## Development workflow
 
@@ -125,7 +164,7 @@ hotfix/short-description
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the complete contribution workflow.
 
-## Planned technology
+## Technology
 
 - Django 5.2 LTS
 - Django REST Framework

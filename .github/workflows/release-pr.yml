@@ -70,8 +70,8 @@ jobs:
 
           ## Risks and deployment notes
 
-          No production deploy workflow is connected yet. Merging this pull
-          request only updates \`main\` and triggers the GitHub Release workflow.
+          Merging this pull request updates \`main\`, creates a GitHub Release,
+          and deploys production on Render after CI checks pass.
 
           ## Checklist
 
