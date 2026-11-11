@@ -1,0 +1,21 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Project environment
+.venv/
+.env
+.env.*
+!.env.example
+
+# Quality tools
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Django
+*.log
+staticfiles/
