@@ -7,29 +7,37 @@ plateau on Mars.
 
 The Django project foundation, probe domain logic, PostgreSQL persistence,
 REST endpoints, application image, local Docker Compose stack, and Render
-Blueprint for staging and production are in place.
+Blueprint for staging and production are in place. Probes share one plateau,
+reject collisions atomically, and keep successful command history.
 
 ## API
 
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/health/` | Process and database health check |
-| `POST` | `/api/probes/` | Launch a probe and configure its plateau |
+| `POST` | `/api/probes/` | Launch a probe on the shared plateau |
 | `GET` | `/api/probes/{id}/` | Get one probe by id |
+| `GET` | `/api/probes/{id}/history/` | List successful command sequences |
 | `POST` | `/api/probes/{id}/commands/` | Execute an atomic command sequence |
 | `GET` | `/api/probes/` | List all probes |
 
 Launch body:
 
 ```json
-{"x": 5, "y": 5, "direction": "NORTH"}
+{"x": 5, "y": 5, "landing_x": 0, "landing_y": 0, "direction": "NORTH"}
 ```
+
+`x` and `y` are the shared plateau dimensions. The first launch creates the
+plateau. Later launches must reuse the same dimensions and a free landing cell.
 
 Move body:
 
 ```json
 {"commands": "MRM"}
 ```
+
+Command sequences are atomic: out-of-bounds or collision leaves probe state
+unchanged and does not create history entries.
 
 Interactive OpenAPI docs are available at `/api/docs/` when the server is running.
 The raw schema is at `/api/schema/`.

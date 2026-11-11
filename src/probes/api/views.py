@@ -11,8 +11,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from probes.api.serializers import (
+    CommandHistoryEntrySerializer,
     LaunchProbeSerializer,
     MoveProbeSerializer,
+    ProbeHistoryResponseSerializer,
     ProbeListResponseSerializer,
     ProbeStateSerializer,
 )
@@ -48,6 +50,8 @@ class ProbeListCreateView(APIView):
         probe = build_probe_service().launch(
             max_x=serializer.validated_data["x"],
             max_y=serializer.validated_data["y"],
+            landing_x=serializer.validated_data["landing_x"],
+            landing_y=serializer.validated_data["landing_y"],
             direction=Direction(serializer.validated_data["direction"]),
         )
         return Response(
@@ -64,6 +68,19 @@ class ProbeDetailView(APIView):
     def get(self, request: Request, probe_id: UUID) -> Response:
         probe = build_probe_service().get_probe(probe_id=probe_id)
         return Response(ProbeStateSerializer.from_probe(probe))
+
+
+class ProbeHistoryView(APIView):
+    @extend_schema(
+        summary="Get probe command history",
+        responses={200: ProbeHistoryResponseSerializer},
+    )
+    def get(self, request: Request, probe_id: UUID) -> Response:
+        entries = build_probe_service().list_history(probe_id=probe_id)
+        payload = []
+        for entry in entries:
+            payload.append(CommandHistoryEntrySerializer.from_entry(entry))
+        return Response({"history": payload})
 
 
 class ProbeMoveView(APIView):
