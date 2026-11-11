@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   format:
-    name: Format
+    name: ${{ github.event_name == 'pull_request' && 'Format' || 'Branch Format' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -39,7 +39,7 @@ jobs:
         run: uv run ruff format --check .
 
   lint:
-    name: Lint
+    name: ${{ github.event_name == 'pull_request' && 'Lint' || 'Branch Lint' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -59,7 +59,7 @@ jobs:
         run: uv run ruff check .
 
   types:
-    name: Types
+    name: ${{ github.event_name == 'pull_request' && 'Types' || 'Branch Types' }}
     runs-on: ubuntu-latest
 
     env:
@@ -91,7 +91,7 @@ jobs:
         run: uv run mypy
 
   tests:
-    name: Tests
+    name: ${{ github.event_name == 'pull_request' && 'Tests' || 'Branch Tests' }}
     runs-on: ubuntu-latest
 
     services:
