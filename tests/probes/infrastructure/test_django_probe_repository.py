@@ -14,15 +14,16 @@ from probes.domain import (
     Probe,
     ProbeNotFoundError,
 )
-from probes.infrastructure.models import ProbeRecord
+from probes.infrastructure.models import ProbeCommandLogRecord, ProbeRecord
 from probes.infrastructure.repositories import DjangoProbeRepository
 
 
 @pytest.mark.django_db
 def test_add_and_get_round_trip() -> None:
     repository = DjangoProbeRepository()
+    plateau = repository.create_shared_plateau(Plateau(max_x=5, max_y=5))
     probe = Probe(
-        plateau=Plateau(max_x=5, max_y=5),
+        plateau=plateau,
         direction=Direction.NORTH,
         position=Position(x=1, y=2),
     )
@@ -49,8 +50,17 @@ def test_get_missing_probe_raises() -> None:
 @pytest.mark.django_db
 def test_list_all_returns_probes_in_creation_order() -> None:
     repository = DjangoProbeRepository()
-    first = Probe(plateau=Plateau(max_x=5, max_y=5), direction=Direction.EAST)
-    second = Probe(plateau=Plateau(max_x=5, max_y=5), direction=Direction.WEST)
+    plateau = repository.create_shared_plateau(Plateau(max_x=5, max_y=5))
+    first = Probe(
+        plateau=plateau,
+        direction=Direction.EAST,
+        position=Position(x=0, y=0),
+    )
+    second = Probe(
+        plateau=plateau,
+        direction=Direction.WEST,
+        position=Position(x=1, y=0),
+    )
 
     repository.add(first)
     repository.add(second)
@@ -66,16 +76,22 @@ def test_list_all_returns_probes_in_creation_order() -> None:
 @pytest.mark.django_db
 def test_save_persists_executed_commands() -> None:
     repository = DjangoProbeRepository()
-    probe = Probe(plateau=Plateau(max_x=5, max_y=5), direction=Direction.NORTH)
+    plateau = repository.create_shared_plateau(Plateau(max_x=5, max_y=5))
+    probe = Probe(plateau=plateau, direction=Direction.NORTH)
     repository.add(probe)
 
-    probe.execute(Command.parse_sequence("MRM"))
+    probe.execute(Command.parse_sequence("MRM"), occupied=frozenset())
     repository.save(probe)
+    repository.add_command_log(probe, commands="MRM")
 
     loaded = repository.get(probe.id)
+    history = repository.list_command_logs(probe.id)
 
     assert loaded.position == Position(x=1, y=1)
     assert loaded.direction is Direction.EAST
+    assert len(history) == 1
+    assert history[0].commands == "MRM"
+    assert ProbeCommandLogRecord.objects.count() == 1
 
 
 @pytest.mark.django_db
@@ -85,3 +101,25 @@ def test_save_missing_probe_raises() -> None:
 
     with pytest.raises(ProbeNotFoundError):
         repository.save(probe)
+
+
+@pytest.mark.django_db
+def test_occupied_positions_excludes_selected_probe() -> None:
+    repository = DjangoProbeRepository()
+    plateau = repository.create_shared_plateau(Plateau(max_x=5, max_y=5))
+    first = Probe(
+        plateau=plateau,
+        direction=Direction.NORTH,
+        position=Position(x=0, y=0),
+    )
+    second = Probe(
+        plateau=plateau,
+        direction=Direction.EAST,
+        position=Position(x=2, y=2),
+    )
+    repository.add(first)
+    repository.add(second)
+
+    occupied = repository.occupied_positions(exclude_probe_id=first.id)
+
+    assert occupied == frozenset({Position(x=2, y=2)})

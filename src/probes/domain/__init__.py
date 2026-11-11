@@ -3,17 +3,21 @@
 from probes.domain.command import Command
 from probes.domain.direction import DIRECTION_CHOICES, DIRECTION_VALUES, Direction
 from probes.domain.exceptions import (
+    CollisionError,
     InvalidCommandError,
     InvalidPlateauError,
     OutOfBoundsError,
     ProbeNotFoundError,
 )
+from probes.domain.history import CommandHistoryEntry
 from probes.domain.plateau import Plateau
 from probes.domain.position import Position
 from probes.domain.probe import Probe
 
 __all__ = [
     "Command",
+    "CommandHistoryEntry",
+    "CollisionError",
     "DIRECTION_CHOICES",
     "DIRECTION_VALUES",
     "Direction",

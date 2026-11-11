@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
 from probes.domain.exceptions import (
+    CollisionError,
     InvalidCommandError,
     InvalidPlateauError,
     OutOfBoundsError,
@@ -30,6 +31,9 @@ def domain_exception_handler(
         return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
     if isinstance(exc, OutOfBoundsError):
+        return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+    if isinstance(exc, CollisionError):
         return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
     if isinstance(exc, ProbeNotFoundError):

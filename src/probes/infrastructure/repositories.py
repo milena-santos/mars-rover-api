@@ -6,33 +6,63 @@ from uuid import UUID
 
 from probes.domain.direction import Direction
 from probes.domain.exceptions import ProbeNotFoundError
+from probes.domain.history import CommandHistoryEntry
 from probes.domain.plateau import Plateau
 from probes.domain.position import Position
 from probes.domain.probe import Probe
-from probes.infrastructure.models import ProbeRecord
+from probes.infrastructure.models import (
+    PlateauRecord,
+    ProbeCommandLogRecord,
+    ProbeRecord,
+)
 
 
 class DjangoProbeRepository:
+    def get_shared_plateau(self) -> Plateau | None:
+        record = PlateauRecord.objects.order_by("created_at").first()
+        if record is None:
+            return None
+        return Plateau(max_x=record.max_x, max_y=record.max_y)
+
+    def create_shared_plateau(self, plateau: Plateau) -> Plateau:
+        PlateauRecord.objects.create(max_x=plateau.max_x, max_y=plateau.max_y)
+        return plateau
+
+    def occupied_positions(
+        self, *, exclude_probe_id: UUID | None = None
+    ) -> frozenset[Position]:
+        queryset = ProbeRecord.objects.all()
+        if exclude_probe_id is not None:
+            queryset = queryset.exclude(pk=exclude_probe_id)
+
+        positions: set[Position] = set()
+        for record in queryset:
+            positions.add(Position(x=record.x, y=record.y))
+        return frozenset(positions)
+
     def add(self, probe: Probe) -> None:
+        plateau = PlateauRecord.objects.order_by("created_at").first()
+        if plateau is None:
+            raise ProbeNotFoundError("Shared plateau was not found.")
+
         ProbeRecord.objects.create(
             id=probe.id,
+            plateau=plateau,
             x=probe.position.x,
             y=probe.position.y,
             direction=probe.direction.value,
-            plateau_max_x=probe.plateau.max_x,
-            plateau_max_y=probe.plateau.max_y,
         )
 
     def get(self, probe_id: UUID) -> Probe:
         try:
-            record = ProbeRecord.objects.get(pk=probe_id)
+            record = ProbeRecord.objects.select_related("plateau").get(pk=probe_id)
         except ProbeRecord.DoesNotExist as exc:
             raise ProbeNotFoundError(f"Probe '{probe_id}' was not found.") from exc
         return self._to_domain(record)
 
     def list_all(self) -> list[Probe]:
         probes = []
-        for record in ProbeRecord.objects.all():
+        for record in ProbeRecord.objects.select_related("plateau").all():
             probes.append(self._to_domain(record))
         return probes
 
@@ -45,24 +75,57 @@ class DjangoProbeRepository:
         record.x = probe.position.x
         record.y = probe.position.y
         record.direction = probe.direction.value
-        record.plateau_max_x = probe.plateau.max_x
-        record.plateau_max_y = probe.plateau.max_y
-        record.save(
-            update_fields=(
-                "x",
-                "y",
-                "direction",
-                "plateau_max_x",
-                "plateau_max_y",
-                "updated_at",
-            )
+        record.save(update_fields=("x", "y", "direction", "updated_at"))
+
+    def add_command_log(self, probe: Probe, *, commands: str) -> CommandHistoryEntry:
+        try:
+            record = ProbeRecord.objects.get(pk=probe.id)
+        except ProbeRecord.DoesNotExist as exc:
+            raise ProbeNotFoundError(f"Probe '{probe.id}' was not found.") from exc
+
+        log = ProbeCommandLogRecord.objects.create(
+            probe=record,
+            commands=commands,
+            x=probe.position.x,
+            y=probe.position.y,
+            direction=probe.direction.value,
         )
+        return CommandHistoryEntry(
+            id=log.id,
+            commands=log.commands,
+            position=Position(x=log.x, y=log.y),
+            direction=Direction(log.direction),
+            created_at=log.created_at,
+        )
+
+    def list_command_logs(self, probe_id: UUID) -> list[CommandHistoryEntry]:
+        if not ProbeRecord.objects.filter(pk=probe_id).exists():
+            raise ProbeNotFoundError(f"Probe '{probe_id}' was not found.")
+
+        entries: list[CommandHistoryEntry] = []
+        logs = ProbeCommandLogRecord.objects.filter(probe_id=probe_id).order_by(
+            "created_at"
+        )
+        for log in logs:
+            entries.append(
+                CommandHistoryEntry(
+                    id=log.id,
+                    commands=log.commands,
+                    position=Position(x=log.x, y=log.y),
+                    direction=Direction(log.direction),
+                    created_at=log.created_at,
+                )
+            )
+        return entries
 
     @staticmethod
     def _to_domain(record: ProbeRecord) -> Probe:
         return Probe(
             id=record.id,
-            plateau=Plateau(max_x=record.plateau_max_x, max_y=record.plateau_max_y),
+            plateau=Plateau(
+                max_x=record.plateau.max_x,
+                max_y=record.plateau.max_y,
+            ),
             direction=Direction(record.direction),
             position=Position(x=record.x, y=record.y),
         )
