@@ -18,24 +18,20 @@ def launch_payload(
     *,
     x: int = 5,
     y: int = 5,
-    landing_x: int = 0,
-    landing_y: int = 0,
     direction: str = "NORTH",
 ) -> dict[str, object]:
     return {
         "x": x,
         "y": y,
-        "landing_x": landing_x,
-        "landing_y": landing_y,
         "direction": direction,
     }
 
 
 @pytest.mark.django_db
-def test_launch_probe_returns_landing_state(api_client: APIClient) -> None:
+def test_launch_probe_starts_at_origin(api_client: APIClient) -> None:
     response = api_client.post(
         "/api/probes/",
-        launch_payload(landing_x=0, landing_y=0, direction="NORTH"),
+        launch_payload(direction="NORTH"),
         format="json",
     )
 
@@ -108,12 +104,17 @@ def test_move_rejects_collision_without_changing_state(
 ) -> None:
     first = api_client.post(
         "/api/probes/",
-        launch_payload(landing_x=0, landing_y=1, direction="NORTH"),
+        launch_payload(direction="NORTH"),
         format="json",
     ).json()
+    api_client.post(
+        f"/api/probes/{first['id']}/commands/",
+        {"commands": "M"},
+        format="json",
+    )
     second = api_client.post(
         "/api/probes/",
-        launch_payload(landing_x=0, landing_y=0, direction="NORTH"),
+        launch_payload(direction="NORTH"),
         format="json",
     ).json()
 
@@ -132,16 +133,16 @@ def test_move_rejects_collision_without_changing_state(
 
 
 @pytest.mark.django_db
-def test_launch_rejects_occupied_landing_position(api_client: APIClient) -> None:
+def test_launch_rejects_occupied_origin(api_client: APIClient) -> None:
     api_client.post(
         "/api/probes/",
-        launch_payload(landing_x=0, landing_y=0, direction="NORTH"),
+        launch_payload(direction="NORTH"),
         format="json",
     )
 
     response = api_client.post(
         "/api/probes/",
-        launch_payload(landing_x=0, landing_y=0, direction="EAST"),
+        launch_payload(direction="EAST"),
         format="json",
     )
 
@@ -152,13 +153,13 @@ def test_launch_rejects_occupied_landing_position(api_client: APIClient) -> None
 def test_launch_rejects_mismatched_shared_plateau(api_client: APIClient) -> None:
     api_client.post(
         "/api/probes/",
-        launch_payload(x=5, y=5, landing_x=0, landing_y=0),
+        launch_payload(x=5, y=5),
         format="json",
     )
 
     response = api_client.post(
         "/api/probes/",
-        launch_payload(x=3, y=3, landing_x=1, landing_y=1),
+        launch_payload(x=3, y=3),
         format="json",
     )
 
@@ -219,19 +220,24 @@ def test_get_unknown_probe_returns_not_found(api_client: APIClient) -> None:
 def test_list_probes_returns_all_states(api_client: APIClient) -> None:
     first = api_client.post(
         "/api/probes/",
-        launch_payload(landing_x=0, landing_y=0, direction="NORTH"),
+        launch_payload(direction="NORTH"),
+        format="json",
+    ).json()
+    moved_first = api_client.post(
+        f"/api/probes/{first['id']}/commands/",
+        {"commands": "M"},
         format="json",
     ).json()
     second = api_client.post(
         "/api/probes/",
-        launch_payload(landing_x=1, landing_y=0, direction="EAST"),
+        launch_payload(direction="EAST"),
         format="json",
     ).json()
 
     response = api_client.get("/api/probes/")
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.json() == {"probes": [first, second]}
+    assert response.json() == {"probes": [moved_first, second]}
 
 
 @pytest.mark.django_db

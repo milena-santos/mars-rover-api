@@ -24,11 +24,12 @@ reject collisions atomically, and keep successful command history.
 Launch body:
 
 ```json
-{"x": 5, "y": 5, "landing_x": 0, "landing_y": 0, "direction": "NORTH"}
+{"x": 5, "y": 5, "direction": "NORTH"}
 ```
 
-`x` and `y` are the shared plateau dimensions. The first launch creates the
-plateau. Later launches must reuse the same dimensions and a free landing cell.
+`x` and `y` are the shared plateau dimensions (upper-right corner). The probe
+always starts at `(0, 0)`. The first launch creates the plateau. Later launches
+must reuse the same dimensions and only succeed when `(0, 0)` is free.
 
 Move body:
 

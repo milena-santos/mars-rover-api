@@ -50,8 +50,6 @@ class ProbeListCreateView(APIView):
         probe = build_probe_service().launch(
             max_x=serializer.validated_data["x"],
             max_y=serializer.validated_data["y"],
-            landing_x=serializer.validated_data["landing_x"],
-            landing_y=serializer.validated_data["landing_y"],
             direction=Direction(serializer.validated_data["direction"]),
         )
         return Response(

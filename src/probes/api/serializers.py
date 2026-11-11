@@ -14,8 +14,6 @@ from probes.domain.probe import Probe
 class LaunchProbeSerializer(serializers.Serializer[dict[str, Any]]):
     x = serializers.IntegerField(min_value=0)
     y = serializers.IntegerField(min_value=0)
-    landing_x = serializers.IntegerField(min_value=0)
-    landing_y = serializers.IntegerField(min_value=0)
     direction = serializers.ChoiceField(choices=DIRECTION_VALUES)
 
 

@@ -23,8 +23,6 @@ class ProbeService:
         *,
         max_x: int,
         max_y: int,
-        landing_x: int,
-        landing_y: int,
         direction: Direction,
     ) -> Probe:
         requested = Plateau(max_x=max_x, max_y=max_y)
@@ -39,12 +37,10 @@ class ProbeService:
         else:
             plateau = shared
 
-        landing = Position(x=landing_x, y=landing_y)
+        landing = Position(x=0, y=0)
         occupied = self._repository.occupied_positions()
         if landing in occupied:
-            raise CollisionError(
-                f"Landing position ({landing.x}, {landing.y}) is already occupied."
-            )
+            raise CollisionError("Landing position (0, 0) is already occupied.")
 
         probe = Probe(plateau=plateau, direction=direction, position=landing)
         self._repository.add(probe)
