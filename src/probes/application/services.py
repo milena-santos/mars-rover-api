@@ -20,6 +20,9 @@ class ProbeService:
         self._repository.add(probe)
         return probe
 
+    def get_probe(self, *, probe_id: UUID) -> Probe:
+        return self._repository.get(probe_id)
+
     def move(self, *, probe_id: UUID, commands: str) -> Probe:
         probe = self._repository.get(probe_id)
         probe.execute(Command.parse_sequence(commands))

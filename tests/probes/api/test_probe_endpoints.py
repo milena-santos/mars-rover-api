@@ -115,6 +115,27 @@ def test_move_unknown_probe_returns_not_found(api_client: APIClient) -> None:
 
 
 @pytest.mark.django_db
+def test_get_probe_returns_current_state(api_client: APIClient) -> None:
+    launch = api_client.post(
+        "/api/probes/",
+        {"x": 5, "y": 5, "direction": "NORTH"},
+        format="json",
+    ).json()
+
+    response = api_client.get(f"/api/probes/{launch['id']}/")
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == launch
+
+
+@pytest.mark.django_db
+def test_get_unknown_probe_returns_not_found(api_client: APIClient) -> None:
+    response = api_client.get(f"/api/probes/{uuid4()}/")
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+@pytest.mark.django_db
 def test_list_probes_returns_all_states(api_client: APIClient) -> None:
     first = api_client.post(
         "/api/probes/",
