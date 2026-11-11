@@ -56,6 +56,16 @@ class ProbeListCreateView(APIView):
         )
 
 
+class ProbeDetailView(APIView):
+    @extend_schema(
+        summary="Get probe",
+        responses={200: ProbeStateSerializer},
+    )
+    def get(self, request: Request, probe_id: UUID) -> Response:
+        probe = build_probe_service().get_probe(probe_id=probe_id)
+        return Response(ProbeStateSerializer.from_probe(probe))
+
+
 class ProbeMoveView(APIView):
     @extend_schema(
         summary="Move probe",

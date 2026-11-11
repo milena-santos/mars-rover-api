@@ -73,6 +73,7 @@ jobs:
       SECRET_KEY: ci-only-secret-key
       DEBUG: "False"
       ALLOWED_HOSTS: localhost,127.0.0.1,testserver
+      CSRF_TRUSTED_ORIGINS: ""
       DATABASE_URL: postgres://mars_rover:mars_rover@localhost:5432/mars_rover
       SECURE_SSL_REDIRECT: "False"
       SESSION_COOKIE_SECURE: "False"
@@ -119,6 +120,7 @@ jobs:
       SECRET_KEY: ci-only-secret-key
       DEBUG: "False"
       ALLOWED_HOSTS: localhost,127.0.0.1,testserver
+      CSRF_TRUSTED_ORIGINS: ""
       DATABASE_URL: postgres://mars_rover:mars_rover@localhost:5432/mars_rover
       SECURE_SSL_REDIRECT: "False"
       SESSION_COOKIE_SECURE: "False"
