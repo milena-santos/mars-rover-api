@@ -5,14 +5,15 @@ plateau on Mars.
 
 ## Project status
 
-The Django project foundation, probe domain logic, PostgreSQL persistence, and
-REST endpoints are in place. Application image and deployment will be delivered
-in later pull requests.
+The Django project foundation, probe domain logic, PostgreSQL persistence,
+REST endpoints, application image, and local Docker Compose stack are in
+place. Managed cloud environments will be delivered in later pull requests.
 
 ## API
 
 | Method | Path | Purpose |
 | --- | --- | --- |
+| `GET` | `/health/` | Process and database health check |
 | `POST` | `/api/probes/` | Launch a probe and configure its plateau |
 | `POST` | `/api/probes/{id}/commands/` | Execute an atomic command sequence |
 | `GET` | `/api/probes/` | List all probes |
@@ -40,6 +41,23 @@ The raw schema is at `/api/schema/`.
 
 ## Local setup
 
+### Full stack with Docker Compose
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+Then open:
+
+- [http://127.0.0.1:8000/health/](http://127.0.0.1:8000/health/)
+- [http://127.0.0.1:8000/api/docs/](http://127.0.0.1:8000/api/docs/)
+
+The `web` service runs migrations and collects static files before starting
+Gunicorn.
+
+### App on the host, database in Docker
+
 ```bash
 cp .env.example .env
 docker compose up -d postgres
@@ -50,8 +68,6 @@ uv run pytest
 uv run python src/manage.py runserver
 ```
 
-Then open [http://127.0.0.1:8000/api/docs/](http://127.0.0.1:8000/api/docs/).
-
 Optional quality checks:
 
 ```bash
@@ -60,7 +76,7 @@ uv run ruff check .
 uv run mypy
 ```
 
-Stop the local database with:
+Stop the local stack with:
 
 ```bash
 docker compose down
@@ -75,6 +91,17 @@ environment variables. Every required variable must be set explicitly; there
 are no configuration fallbacks.
 
 Local development and CI use the PostgreSQL service defined in `compose.yaml`.
+The Compose `web` service overrides `DATABASE_URL` so the app reaches Postgres
+on the internal Docker network.
+
+## Container image
+
+```bash
+docker build -t mars-rover-api .
+```
+
+The image entrypoint waits for the database, runs migrations, collects static
+files, and then starts Gunicorn on port `8000`.
 
 ## Development workflow
 
@@ -106,7 +133,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the complete contribution workflow.
 - Pytest and Coverage.py
 - Ruff and Mypy
 - Docker
+- Gunicorn and WhiteNoise
 - GitHub Actions
+- Render
 
 ## License
 
