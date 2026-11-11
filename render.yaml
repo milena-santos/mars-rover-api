@@ -21,9 +21,7 @@ projects:
               - key: CSRF_TRUSTED_ORIGINS
                 sync: false
               - key: DATABASE_URL
-                fromDatabase:
-                  name: db-staging
-                  property: connectionString
+                sync: false
               - key: SECURE_SSL_REDIRECT
                 value: "False"
               - key: SESSION_COOKIE_SECURE
@@ -34,9 +32,6 @@ projects:
                 value: "True"
               - key: DJANGO_SETTINGS_MODULE
                 value: config.settings
-        databases:
-          - name: db-staging
-            plan: free
 
       - name: production
         services:
@@ -58,9 +53,7 @@ projects:
               - key: CSRF_TRUSTED_ORIGINS
                 sync: false
               - key: DATABASE_URL
-                fromDatabase:
-                  name: db-production
-                  property: connectionString
+                sync: false
               - key: SECURE_SSL_REDIRECT
                 value: "False"
               - key: SESSION_COOKIE_SECURE
@@ -71,6 +64,3 @@ projects:
                 value: "True"
               - key: DJANGO_SETTINGS_MODULE
                 value: config.settings
-        databases:
-          - name: db-production
-            plan: free
