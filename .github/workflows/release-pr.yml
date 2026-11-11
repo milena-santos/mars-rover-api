@@ -26,10 +26,14 @@ jobs:
 
       - name: Create or update release pull request
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GH_WORKFLOW_TOKEN || github.token }}
         shell: bash
         run: |
           set -euo pipefail
+
+          if [[ -z "${{ secrets.GH_WORKFLOW_TOKEN }}" ]]; then
+            echo "::warning::GH_WORKFLOW_TOKEN is not set. Release PRs created with GITHUB_TOKEN may leave required checks Expected."
+          fi
 
           if ! git rev-parse --verify origin/main >/dev/null 2>&1; then
             echo "origin/main was not found."
