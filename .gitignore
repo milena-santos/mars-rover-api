@@ -19,3 +19,5 @@ htmlcov/
 # Django
 *.log
 staticfiles/
+
+.neon
