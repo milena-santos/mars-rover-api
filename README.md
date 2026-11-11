@@ -117,26 +117,40 @@ variable is set, otherwise on `8000`.
 
 `render.yaml` defines one Render project with two environments:
 
-| Environment | Git branch | Deploy trigger |
-| --- | --- | --- |
-| staging | `develop` | after CI checks pass |
-| production | `main` | after CI checks pass |
+| Environment | Git branch | Database | Deploy trigger |
+| --- | --- | --- | --- |
+| staging | `develop` | Neon (`DATABASE_URL`) | after CI checks pass |
+| production | `main` | Neon (`DATABASE_URL`) | after CI checks pass |
+
+Both web services run on Render. Both databases run on Neon so staging and
+production stay consistent and avoid Render's single free Postgres limit.
+
+### Neon databases
+
+1. Create an account at [Neon](https://console.neon.tech).
+2. Create a project (example name: `mars-rover-api`) in your preferred region.
+3. Create two databases in that project, for example:
+   - `mars_rover_staging`
+   - `mars_rover_production`
+4. Open **Connect** for each database and copy the Postgres URI.
+5. Prefer URIs that include SSL, for example:
+   `postgresql://USER:PASSWORD@HOST/mars_rover_staging?sslmode=require`
 
 ### First-time setup
 
 1. Push this repository to GitHub.
-2. In Render, create a Blueprint from `render.yaml`.
-3. After the first deploy, copy each service hostname and HTTPS origin.
-4. Set both values per environment with the exact service identity only:
-   - staging `ALLOWED_HOSTS`: `your-staging-host.onrender.com`
-   - staging `CSRF_TRUSTED_ORIGINS`: `https://your-staging-host.onrender.com`
-   - production `ALLOWED_HOSTS`: `your-production-host.onrender.com`
-   - production `CSRF_TRUSTED_ORIGINS`: `https://your-production-host.onrender.com`
-5. Do not use wildcards such as `.onrender.com` or `*`.
-6. Confirm `/health/` and `/api/docs/` on staging and production.
-
-Free Render Postgres instances are ephemeral. Upgrade the database plan if you
-need durable data.
+2. Create the Neon databases and copy each `DATABASE_URL`.
+3. In Render, create a Blueprint from `render.yaml`.
+4. When prompted, set exact values only:
+   - staging `ALLOWED_HOSTS`: `web-staging.onrender.com`
+   - staging `CSRF_TRUSTED_ORIGINS`: `https://web-staging.onrender.com`
+   - staging `DATABASE_URL`: Neon staging URI
+   - production `ALLOWED_HOSTS`: `web-production.onrender.com`
+   - production `CSRF_TRUSTED_ORIGINS`: `https://web-production.onrender.com`
+   - production `DATABASE_URL`: Neon production URI
+5. If Render assigns a hostname with a suffix, use that exact host/origin instead.
+6. Do not use wildcards such as `.onrender.com` or `*`.
+7. Confirm `/health/` and `/api/docs/` on staging and production.
 
 ## CI and CD
 
