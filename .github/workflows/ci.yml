@@ -14,12 +14,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.sha }}
   cancel-in-progress: true
 
 jobs:
   format:
-    name: ${{ github.event_name == 'pull_request' && 'Format' || 'Branch Format' }}
+    name: Format
     runs-on: ubuntu-latest
 
     steps:
@@ -39,7 +39,7 @@ jobs:
         run: uv run ruff format --check .
 
   lint:
-    name: ${{ github.event_name == 'pull_request' && 'Lint' || 'Branch Lint' }}
+    name: Lint
     runs-on: ubuntu-latest
 
     steps:
@@ -59,7 +59,7 @@ jobs:
         run: uv run ruff check .
 
   types:
-    name: ${{ github.event_name == 'pull_request' && 'Types' || 'Branch Types' }}
+    name: Types
     runs-on: ubuntu-latest
 
     env:
@@ -91,7 +91,7 @@ jobs:
         run: uv run mypy
 
   tests:
-    name: ${{ github.event_name == 'pull_request' && 'Tests' || 'Branch Tests' }}
+    name: Tests
     runs-on: ubuntu-latest
 
     services:

@@ -30,11 +30,15 @@ jobs:
 
       - name: Create draft pull request
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GH_WORKFLOW_TOKEN || github.token }}
           HEAD_BRANCH: ${{ github.ref_name }}
         shell: bash
         run: |
           set -euo pipefail
+
+          if [[ -z "${{ secrets.GH_WORKFLOW_TOKEN }}" ]]; then
+            echo "::warning::GH_WORKFLOW_TOKEN is not set. Draft PRs created with GITHUB_TOKEN may leave required checks Expected."
+          fi
 
           base_branch="develop"
 
