@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 
 from probes.domain.command import Command
 from probes.domain.direction import Direction
-from probes.domain.exceptions import OutOfBoundsError
+from probes.domain.exceptions import CollisionError, OutOfBoundsError
 from probes.domain.plateau import Plateau
 from probes.domain.position import Position
 
@@ -26,7 +26,12 @@ class Probe:
                 "is outside the plateau."
             )
 
-    def execute(self, commands: tuple[Command, ...]) -> None:
+    def execute(
+        self,
+        commands: tuple[Command, ...],
+        *,
+        occupied: frozenset[Position],
+    ) -> None:
         next_position = self.position
         next_direction = self.direction
 
@@ -42,6 +47,10 @@ class Probe:
             if not self.plateau.contains(candidate):
                 raise OutOfBoundsError(
                     "Command sequence would move the probe outside the plateau."
+                )
+            if candidate in occupied:
+                raise CollisionError(
+                    "Command sequence would collide with another probe."
                 )
             next_position = candidate
 

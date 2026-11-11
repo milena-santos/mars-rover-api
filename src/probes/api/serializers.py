@@ -7,12 +7,15 @@ from typing import Any
 from rest_framework import serializers
 
 from probes.domain.direction import DIRECTION_VALUES
+from probes.domain.history import CommandHistoryEntry
 from probes.domain.probe import Probe
 
 
 class LaunchProbeSerializer(serializers.Serializer[dict[str, Any]]):
     x = serializers.IntegerField(min_value=0)
     y = serializers.IntegerField(min_value=0)
+    landing_x = serializers.IntegerField(min_value=0)
+    landing_y = serializers.IntegerField(min_value=0)
     direction = serializers.ChoiceField(choices=DIRECTION_VALUES)
 
 
@@ -38,3 +41,27 @@ class ProbeStateSerializer(serializers.Serializer[dict[str, Any]]):
 
 class ProbeListResponseSerializer(serializers.Serializer[dict[str, Any]]):
     probes = ProbeStateSerializer(many=True)
+
+
+class CommandHistoryEntrySerializer(serializers.Serializer[dict[str, Any]]):
+    id = serializers.UUIDField()
+    commands = serializers.CharField()
+    x = serializers.IntegerField()
+    y = serializers.IntegerField()
+    direction = serializers.ChoiceField(choices=DIRECTION_VALUES)
+    created_at = serializers.DateTimeField()
+
+    @classmethod
+    def from_entry(cls, entry: CommandHistoryEntry) -> dict[str, object]:
+        return {
+            "id": entry.id,
+            "commands": entry.commands,
+            "x": entry.position.x,
+            "y": entry.position.y,
+            "direction": entry.direction.value,
+            "created_at": entry.created_at,
+        }
+
+
+class ProbeHistoryResponseSerializer(serializers.Serializer[dict[str, Any]]):
+    history = CommandHistoryEntrySerializer(many=True)
