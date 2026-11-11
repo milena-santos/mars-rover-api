@@ -9,19 +9,12 @@ on:
     branches:
       - develop
       - main
-      - "feature/**"
-      - "fix/**"
-      - "chore/**"
-      - "docs/**"
-      - "refactor/**"
-      - "test/**"
-      - "hotfix/**"
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
