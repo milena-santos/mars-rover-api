@@ -155,7 +155,18 @@ production stay consistent and avoid Render's single free Postgres limit.
 ## CI and CD
 
 GitHub Actions runs formatting, linting, type checks, and tests on pull
-requests and pushes.
+requests and on pushes to `develop` / `main`. Required check names are always
+`Format`, `Lint`, `Types`, and `Tests`. Concurrent runs for the same commit are
+cancelled so those names are not duplicated.
+
+Workflows that open pull requests must use a personal access token stored as
+the repository secret `GH_WORKFLOW_TOKEN`. The default `GITHUB_TOKEN` cannot
+reliably start required checks on PRs that Actions itself opens.
+
+Create a classic or fine-grained PAT with permission to create pull requests on
+this repository, then add it at
+[Settings → Secrets and variables → Actions](https://github.com/milena-santos/mars-rover-api/settings/secrets/actions)
+as `GH_WORKFLOW_TOKEN`.
 
 Continuous delivery is handled by Render:
 
