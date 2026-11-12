@@ -14,6 +14,7 @@ from probes.api.serializers import (
     CommandHistoryEntrySerializer,
     LaunchProbeSerializer,
     MoveProbeSerializer,
+    PlateauStateSerializer,
     ProbeHistoryResponseSerializer,
     ProbeListResponseSerializer,
     ProbeStateSerializer,
@@ -45,11 +46,22 @@ class ProbeListCreateView(APIView):
         responses={200: ProbeListResponseSerializer},
     )
     def get(self, request: Request) -> Response:
-        probes = build_probe_service().list_probes()
+        service = build_probe_service()
+        probes = service.list_probes()
+        shared = service.get_shared_plateau()
         payload = []
         for probe in probes:
             payload.append(ProbeStateSerializer.from_probe(probe))
-        return Response({"probes": payload})
+        return Response(
+            {
+                "probes": payload,
+                "plateau": (
+                    PlateauStateSerializer.from_plateau(shared)
+                    if shared is not None
+                    else None
+                ),
+            }
+        )
 
     @extend_schema(
         summary="Launch probe",

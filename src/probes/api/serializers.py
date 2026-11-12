@@ -8,7 +8,7 @@ from rest_framework import serializers
 
 from probes.domain.direction import DIRECTION_VALUES
 from probes.domain.history import CommandHistoryEntry
-from probes.domain.plateau import MAX_PLATEAU_DIMENSION
+from probes.domain.plateau import MAX_PLATEAU_DIMENSION, Plateau
 from probes.domain.probe import Probe
 
 
@@ -38,8 +38,21 @@ class ProbeStateSerializer(serializers.Serializer[dict[str, Any]]):
         }
 
 
+class PlateauStateSerializer(serializers.Serializer[dict[str, Any]]):
+    max_x = serializers.IntegerField()
+    max_y = serializers.IntegerField()
+
+    @classmethod
+    def from_plateau(cls, plateau: Plateau) -> dict[str, int]:
+        return {
+            "max_x": plateau.max_x,
+            "max_y": plateau.max_y,
+        }
+
+
 class ProbeListResponseSerializer(serializers.Serializer[dict[str, Any]]):
     probes = ProbeStateSerializer(many=True)
+    plateau = PlateauStateSerializer(allow_null=True)
 
 
 class CommandHistoryEntrySerializer(serializers.Serializer[dict[str, Any]]):
