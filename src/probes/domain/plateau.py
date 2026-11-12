@@ -20,13 +20,9 @@ class Plateau:
             raise InvalidPlateauError(
                 "Plateau dimensions must be greater than or equal to zero."
             )
-        if (
-            self.max_x > MAX_PLATEAU_DIMENSION
-            or self.max_y > MAX_PLATEAU_DIMENSION
-        ):
+        if self.max_x > MAX_PLATEAU_DIMENSION or self.max_y > MAX_PLATEAU_DIMENSION:
             raise InvalidPlateauError(
-                "Plateau dimensions must be between 0 and "
-                f"{MAX_PLATEAU_DIMENSION}."
+                f"Plateau dimensions must be between 0 and {MAX_PLATEAU_DIMENSION}."
             )
 
     def contains(self, position: Position) -> bool:
