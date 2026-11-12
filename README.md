@@ -8,7 +8,7 @@ plateau on Mars.
 The Django project foundation, probe domain logic, PostgreSQL persistence,
 REST endpoints, application image, local Docker Compose stack, and Render
 Blueprint for staging and production are in place. Probes share one plateau,
-reject collisions atomically, and keep successful command history.
+destroy both probes on move collision, and keep successful command history.
 
 ## API
 
@@ -20,6 +20,7 @@ reject collisions atomically, and keep successful command history.
 | `GET` | `/api/probes/{id}/history/` | List successful command sequences |
 | `POST` | `/api/probes/{id}/commands/` | Execute an atomic command sequence |
 | `GET` | `/api/probes/` | List all probes |
+| `DELETE` | `/api/probes/` | Remove all probes and reset the plateau |
 
 Launch body:
 
@@ -28,8 +29,11 @@ Launch body:
 ```
 
 `x` and `y` are the shared plateau dimensions (upper-right corner). The probe
-always starts at `(0, 0)`. The first launch creates the plateau. Later launches
-must reuse the same dimensions and only succeed when `(0, 0)` is free.
+always starts at `(0, 0)`. The first launch creates the plateau. While probes
+exist, later launches must reuse the same dimensions. With an empty mission,
+a new size replaces the shared plateau. If `(0, 0)` is occupied, the landing
+collides: both probes are destroyed and the response is `200` with
+`event: "collision"`.
 
 Move body:
 
@@ -37,8 +41,10 @@ Move body:
 {"commands": "MRM"}
 ```
 
-Command sequences are atomic: out-of-bounds or collision leaves probe state
-unchanged and does not create history entries.
+Command sequences are atomic for out-of-bounds moves (state unchanged, no
+history). A move that would collide destroys both probes and returns `200`
+with `event: "collision"`, the impact cell, and destroyed ids — no history
+entry.
 
 Interactive OpenAPI docs are available at `/api/docs/` when the server is running.
 The raw schema is at `/api/schema/`.
@@ -146,9 +152,11 @@ production stay consistent and avoid Render's single free Postgres limit.
    - staging `ALLOWED_HOSTS`: `web-staging.onrender.com`
    - staging `CSRF_TRUSTED_ORIGINS`: `https://web-staging.onrender.com`
    - staging `DATABASE_URL`: Neon staging URI
+   - staging `CORS_ALLOWED_ORIGINS`: front origin(s), e.g. `http://localhost:3000`
    - production `ALLOWED_HOSTS`: `web-production.onrender.com`
    - production `CSRF_TRUSTED_ORIGINS`: `https://web-production.onrender.com`
    - production `DATABASE_URL`: Neon production URI
+   - production `CORS_ALLOWED_ORIGINS`: deployed front origin(s)
 5. If Render assigns a hostname with a suffix, use that exact host/origin instead.
 6. Do not use wildcards such as `.onrender.com` or `*`.
 7. Confirm `/health/` and `/api/docs/` on staging and production.

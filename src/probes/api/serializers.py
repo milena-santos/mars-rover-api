@@ -8,12 +8,13 @@ from rest_framework import serializers
 
 from probes.domain.direction import DIRECTION_VALUES
 from probes.domain.history import CommandHistoryEntry
+from probes.domain.plateau import MAX_PLATEAU_DIMENSION
 from probes.domain.probe import Probe
 
 
 class LaunchProbeSerializer(serializers.Serializer[dict[str, Any]]):
-    x = serializers.IntegerField(min_value=0)
-    y = serializers.IntegerField(min_value=0)
+    x = serializers.IntegerField(min_value=0, max_value=MAX_PLATEAU_DIMENSION)
+    y = serializers.IntegerField(min_value=0, max_value=MAX_PLATEAU_DIMENSION)
     direction = serializers.ChoiceField(choices=DIRECTION_VALUES)
 
 
@@ -63,3 +64,11 @@ class CommandHistoryEntrySerializer(serializers.Serializer[dict[str, Any]]):
 
 class ProbeHistoryResponseSerializer(serializers.Serializer[dict[str, Any]]):
     history = CommandHistoryEntrySerializer(many=True)
+
+
+class CollisionResponseSerializer(serializers.Serializer[dict[str, Any]]):
+    event = serializers.CharField()
+    detail = serializers.CharField()
+    x = serializers.IntegerField()
+    y = serializers.IntegerField()
+    destroyed = serializers.ListField(child=serializers.UUIDField())

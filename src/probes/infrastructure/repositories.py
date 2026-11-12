@@ -28,6 +28,10 @@ class DjangoProbeRepository:
         PlateauRecord.objects.create(max_x=plateau.max_x, max_y=plateau.max_y)
         return plateau
 
+    def replace_shared_plateau(self, plateau: Plateau) -> Plateau:
+        PlateauRecord.objects.all().delete()
+        return self.create_shared_plateau(plateau)
+
     def occupied_positions(
         self, *, exclude_probe_id: UUID | None = None
     ) -> frozenset[Position]:
@@ -39,6 +43,12 @@ class DjangoProbeRepository:
         for record in queryset:
             positions.add(Position(x=record.x, y=record.y))
         return frozenset(positions)
+
+    def find_id_at(self, position: Position) -> UUID | None:
+        record = ProbeRecord.objects.filter(x=position.x, y=position.y).first()
+        if record is None:
+            return None
+        return record.id
 
     def add(self, probe: Probe) -> None:
         plateau = PlateauRecord.objects.order_by("created_at").first()
@@ -76,6 +86,11 @@ class DjangoProbeRepository:
         record.y = probe.position.y
         record.direction = probe.direction.value
         record.save(update_fields=("x", "y", "direction", "updated_at"))
+
+    def delete_many(self, probe_ids: list[UUID]) -> None:
+        if not probe_ids:
+            return
+        ProbeRecord.objects.filter(pk__in=probe_ids).delete()
 
     def add_command_log(self, probe: Probe, *, commands: str) -> CommandHistoryEntry:
         try:
@@ -117,6 +132,10 @@ class DjangoProbeRepository:
                 )
             )
         return entries
+
+    def clear_all(self) -> None:
+        ProbeRecord.objects.all().delete()
+        PlateauRecord.objects.all().delete()
 
     @staticmethod
     def _to_domain(record: ProbeRecord) -> Probe:

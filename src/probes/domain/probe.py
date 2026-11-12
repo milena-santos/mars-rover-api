@@ -50,7 +50,8 @@ class Probe:
                 )
             if candidate in occupied:
                 raise CollisionError(
-                    "Command sequence would collide with another probe."
+                    "Command sequence collided with another probe.",
+                    position=candidate,
                 )
             next_position = candidate
 

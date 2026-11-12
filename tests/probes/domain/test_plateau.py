@@ -25,3 +25,15 @@ def test_plateau_rejects_positions_outside_bounds() -> None:
 def test_plateau_rejects_negative_dimensions() -> None:
     with pytest.raises(InvalidPlateauError):
         Plateau(max_x=-1, max_y=5)
+
+
+def test_plateau_rejects_dimensions_above_maximum() -> None:
+    with pytest.raises(InvalidPlateauError):
+        Plateau(max_x=11, max_y=5)
+
+
+def test_plateau_accepts_maximum_dimensions() -> None:
+    plateau = Plateau(max_x=10, max_y=10)
+
+    assert plateau.contains(Position(x=10, y=10))
+    assert not plateau.contains(Position(x=11, y=0))

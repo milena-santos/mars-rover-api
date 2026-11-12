@@ -22,6 +22,8 @@ projects:
                 sync: false
               - key: DATABASE_URL
                 sync: false
+              - key: CORS_ALLOWED_ORIGINS
+                sync: false
               - key: SECURE_SSL_REDIRECT
                 value: "False"
               - key: SESSION_COOKIE_SECURE
@@ -53,6 +55,8 @@ projects:
               - key: CSRF_TRUSTED_ORIGINS
                 sync: false
               - key: DATABASE_URL
+                sync: false
+              - key: CORS_ALLOWED_ORIGINS
                 sync: false
               - key: SECURE_SSL_REDIRECT
                 value: "False"

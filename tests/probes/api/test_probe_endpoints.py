@@ -99,9 +99,7 @@ def test_move_rejects_out_of_bounds_without_changing_state(
 
 
 @pytest.mark.django_db
-def test_move_rejects_collision_without_changing_state(
-    api_client: APIClient,
-) -> None:
+def test_move_collision_destroys_both_probes(api_client: APIClient) -> None:
     first = api_client.post(
         "/api/probes/",
         launch_payload(direction="NORTH"),
@@ -124,21 +122,30 @@ def test_move_rejects_collision_without_changing_state(
         format="json",
     )
 
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert "detail" in response.json()
+    assert response.status_code == status.HTTP_200_OK
+    body = response.json()
+    assert body["event"] == "collision"
+    assert body["x"] == 0
+    assert body["y"] == 1
+    assert set(body["destroyed"]) == {first["id"], second["id"]}
 
-    current = api_client.get(f"/api/probes/{second['id']}/")
-    assert current.json() == second
-    assert first["id"] != second["id"]
+    listing = api_client.get("/api/probes/")
+    assert listing.json() == {"probes": []}
+    assert api_client.get(f"/api/probes/{first['id']}/").status_code == (
+        status.HTTP_404_NOT_FOUND
+    )
+    assert api_client.get(f"/api/probes/{second['id']}/").status_code == (
+        status.HTTP_404_NOT_FOUND
+    )
 
 
 @pytest.mark.django_db
-def test_launch_rejects_occupied_origin(api_client: APIClient) -> None:
-    api_client.post(
+def test_launch_collision_destroys_both_probes(api_client: APIClient) -> None:
+    first = api_client.post(
         "/api/probes/",
         launch_payload(direction="NORTH"),
         format="json",
-    )
+    ).json()
 
     response = api_client.post(
         "/api/probes/",
@@ -146,11 +153,25 @@ def test_launch_rejects_occupied_origin(api_client: APIClient) -> None:
         format="json",
     )
 
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.status_code == status.HTTP_200_OK
+    body = response.json()
+    assert body["event"] == "collision"
+    assert body["x"] == 0
+    assert body["y"] == 0
+    assert first["id"] in body["destroyed"]
+    assert len(body["destroyed"]) == 2
+
+    listing = api_client.get("/api/probes/")
+    assert listing.json() == {"probes": []}
+    assert api_client.get(f"/api/probes/{first['id']}/").status_code == (
+        status.HTTP_404_NOT_FOUND
+    )
 
 
 @pytest.mark.django_db
-def test_launch_rejects_mismatched_shared_plateau(api_client: APIClient) -> None:
+def test_launch_rejects_mismatched_shared_plateau_while_probes_exist(
+    api_client: APIClient,
+) -> None:
     api_client.post(
         "/api/probes/",
         launch_payload(x=5, y=5),
@@ -164,6 +185,38 @@ def test_launch_rejects_mismatched_shared_plateau(api_client: APIClient) -> None
     )
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.django_db
+def test_launch_allows_new_plateau_when_mission_is_empty(
+    api_client: APIClient,
+) -> None:
+    first = api_client.post(
+        "/api/probes/",
+        launch_payload(x=5, y=5, direction="NORTH"),
+        format="json",
+    ).json()
+    api_client.post(
+        "/api/probes/",
+        launch_payload(x=5, y=5, direction="EAST"),
+        format="json",
+    )
+    listing = api_client.get("/api/probes/")
+    assert listing.json() == {"probes": []}
+    assert api_client.get(f"/api/probes/{first['id']}/").status_code == (
+        status.HTTP_404_NOT_FOUND
+    )
+
+    relaunch = api_client.post(
+        "/api/probes/",
+        launch_payload(x=3, y=3, direction="SOUTH"),
+        format="json",
+    )
+
+    assert relaunch.status_code == status.HTTP_201_CREATED
+    assert relaunch.json()["direction"] == "SOUTH"
+    assert relaunch.json()["x"] == 0
+    assert relaunch.json()["y"] == 0
 
 
 @pytest.mark.django_db
@@ -309,3 +362,40 @@ def test_launch_rejects_invalid_direction(api_client: APIClient) -> None:
     )
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.django_db
+def test_clear_all_removes_probes_and_allows_new_mission(
+    api_client: APIClient,
+) -> None:
+    first = api_client.post(
+        "/api/probes/",
+        launch_payload(direction="NORTH"),
+        format="json",
+    ).json()
+    api_client.post(
+        f"/api/probes/{first['id']}/commands/",
+        {"commands": "M"},
+        format="json",
+    )
+    api_client.post(
+        "/api/probes/",
+        launch_payload(direction="EAST"),
+        format="json",
+    )
+
+    cleared = api_client.delete("/api/probes/")
+    assert cleared.status_code == status.HTTP_204_NO_CONTENT
+
+    listing = api_client.get("/api/probes/")
+    assert listing.json() == {"probes": []}
+
+    relaunch = api_client.post(
+        "/api/probes/",
+        launch_payload(x=3, y=3, direction="SOUTH"),
+        format="json",
+    )
+    assert relaunch.status_code == status.HTTP_201_CREATED
+    assert relaunch.json()["x"] == 0
+    assert relaunch.json()["y"] == 0
+    assert relaunch.json()["direction"] == "SOUTH"

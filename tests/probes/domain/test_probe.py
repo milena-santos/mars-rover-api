@@ -64,9 +64,10 @@ def test_execute_is_atomic_when_sequence_collides() -> None:
     probe = Probe(plateau=Plateau(max_x=5, max_y=5), direction=Direction.NORTH)
     occupied = frozenset({Position(x=0, y=1)})
 
-    with pytest.raises(CollisionError):
+    with pytest.raises(CollisionError) as raised:
         probe.execute(Command.parse_sequence("MRM"), occupied=occupied)
 
+    assert raised.value.position == Position(x=0, y=1)
     assert probe.position == Position(x=0, y=0)
     assert probe.direction is Direction.NORTH
 
