@@ -130,7 +130,10 @@ def test_move_collision_destroys_both_probes(api_client: APIClient) -> None:
     assert set(body["destroyed"]) == {first["id"], second["id"]}
 
     listing = api_client.get("/api/probes/")
-    assert listing.json() == {"probes": []}
+    assert listing.json() == {
+        "probes": [],
+        "plateau": {"max_x": 5, "max_y": 5},
+    }
     assert api_client.get(f"/api/probes/{first['id']}/").status_code == (
         status.HTTP_404_NOT_FOUND
     )
@@ -162,7 +165,10 @@ def test_launch_collision_destroys_both_probes(api_client: APIClient) -> None:
     assert len(body["destroyed"]) == 2
 
     listing = api_client.get("/api/probes/")
-    assert listing.json() == {"probes": []}
+    assert listing.json() == {
+        "probes": [],
+        "plateau": {"max_x": 5, "max_y": 5},
+    }
     assert api_client.get(f"/api/probes/{first['id']}/").status_code == (
         status.HTTP_404_NOT_FOUND
     )
@@ -202,7 +208,10 @@ def test_launch_allows_new_plateau_when_mission_is_empty(
         format="json",
     )
     listing = api_client.get("/api/probes/")
-    assert listing.json() == {"probes": []}
+    assert listing.json() == {
+        "probes": [],
+        "plateau": {"max_x": 5, "max_y": 5},
+    }
     assert api_client.get(f"/api/probes/{first['id']}/").status_code == (
         status.HTTP_404_NOT_FOUND
     )
@@ -290,7 +299,10 @@ def test_list_probes_returns_all_states(api_client: APIClient) -> None:
     response = api_client.get("/api/probes/")
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.json() == {"probes": [moved_first, second]}
+    assert response.json() == {
+        "probes": [moved_first, second],
+        "plateau": {"max_x": 5, "max_y": 5},
+    }
 
 
 @pytest.mark.django_db
@@ -388,7 +400,7 @@ def test_clear_all_removes_probes_and_allows_new_mission(
     assert cleared.status_code == status.HTTP_204_NO_CONTENT
 
     listing = api_client.get("/api/probes/")
-    assert listing.json() == {"probes": []}
+    assert listing.json() == {"probes": [], "plateau": None}
 
     relaunch = api_client.post(
         "/api/probes/",
