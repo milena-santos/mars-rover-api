@@ -85,6 +85,9 @@ class ProbeService:
     def list_probes(self) -> list[Probe]:
         return self._repository.list_all()
 
+    def get_shared_plateau(self) -> Plateau | None:
+        return self._repository.get_shared_plateau()
+
     def list_history(self, *, probe_id: UUID) -> list[CommandHistoryEntry]:
         self._repository.get(probe_id)
         return self._repository.list_command_logs(probe_id)
