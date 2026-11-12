@@ -1,59 +1,104 @@
 # Mars Rover API
 
-REST API for launching and controlling robotic probes on a rectangular
-plateau on Mars.
+REST API in Python for launching and controlling probes on a rectangular
+Martian plateau. Companion UI:
+[`mars-rover-web`](https://github.com/milena-santos/mars-rover-web).
 
-## Project status
+**Live**
 
-The Django project foundation, probe domain logic, PostgreSQL persistence,
-REST endpoints, application image, local Docker Compose stack, and Render
-Blueprint for staging and production are in place. Probes share one plateau,
-destroy both probes on move collision, and keep successful command history.
+| Env | URL |
+| --- | --- |
+| Production docs | https://web-production-gbuy.onrender.com/api/docs/ |
+| Staging docs | https://web-staging-pntn.onrender.com/api/docs/ |
+| Front (prod) | https://mars-rover-web-prod.vercel.app |
 
-## API
+## Overview
+
+Implements the RD Station Mars probe challenge endpoints, plus a few deliberate
+extras: shared plateau, landing/move collisions, command history, health check,
+OpenAPI/Swagger, PostgreSQL, Docker, and CI/CD to Render.
+
+Layout follows a pragmatic hexagonal split: domain rules stay free of Django;
+application services orchestrate use cases; API and infrastructure adapters
+sit at the edges.
+
+## Challenge endpoints
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/health/` | Process and database health check |
-| `POST` | `/api/probes/` | Launch a probe on the shared plateau |
-| `GET` | `/api/probes/{id}/` | Get one probe by id |
-| `GET` | `/api/probes/{id}/history/` | List successful command sequences |
+| `POST` | `/api/probes/` | Launch a probe and configure the plateau |
 | `POST` | `/api/probes/{id}/commands/` | Execute an atomic command sequence |
 | `GET` | `/api/probes/` | List all probes |
-| `DELETE` | `/api/probes/` | Remove all probes and reset the plateau |
 
-Launch body:
+### Launch
 
-```json
+```http
+POST /api/probes/
+Content-Type: application/json
+
 {"x": 5, "y": 5, "direction": "NORTH"}
 ```
 
-`x` and `y` are the shared plateau dimensions (upper-right corner). The probe
-always starts at `(0, 0)`. The first launch creates the plateau. While probes
-exist, later launches must reuse the same dimensions. With an empty mission,
-a new size replaces the shared plateau. If `(0, 0)` is occupied, the landing
-collides: both probes are destroyed and the response is `200` with
-`event: "collision"`.
+`x` and `y` are the upper-right corner of the shared plateau. The probe always
+starts at `(0, 0)`.
 
-Move body:
+Success (`201`):
 
 ```json
+{"id": "…", "x": 0, "y": 0, "direction": "NORTH"}
+```
+
+### Move
+
+```http
+POST /api/probes/{id}/commands/
+Content-Type: application/json
+
 {"commands": "MRM"}
 ```
 
-Command sequences are atomic for out-of-bounds moves (state unchanged, no
-history). A move that would collide destroys both probes and returns `200`
-with `event: "collision"`, the impact cell, and destroyed ids — no history
-entry.
+Commands: `M` move forward, `L` turn left, `R` turn right. Out-of-bounds
+sequences are rejected atomically (probe state unchanged).
 
-Interactive OpenAPI docs are available at `/api/docs/` when the server is running.
-The raw schema is at `/api/schema/`.
+Success (`200`):
+
+```json
+{"id": "…", "x": 1, "y": 1, "direction": "EAST"}
+```
+
+### List
+
+```http
+GET /api/probes/
+```
+
+```json
+{
+  "probes": [
+    {"id": "…", "x": 1, "y": 1, "direction": "EAST"}
+  ],
+  "plateau": {"max_x": 5, "max_y": 5}
+}
+```
+
+Interactive docs: `/api/docs/` · raw schema: `/api/schema/`.
+
+## Extra behaviour
+
+| Topic | Behaviour |
+| --- | --- |
+| Shared plateau | First launch creates it; later launches reuse the same size while probes exist |
+| Landing collision | If `(0, 0)` is occupied, both probes are destroyed (`200`, `event: "collision"`) |
+| Move collision | Moving onto another probe destroys both (`200`, `event: "collision"`) |
+| History | Successful command sequences are stored per probe |
+| Clear mission | `DELETE /api/probes/` removes probes and resets the plateau |
+| Health | `GET /health/` checks process + database |
 
 ## Requirements
 
 - Python 3.13
 - [uv](https://docs.astral.sh/uv/)
-- [Docker](https://docs.docker.com/get-docker/) and Docker Compose
+- Docker / Docker Compose
 
 ## Local setup
 
@@ -64,13 +109,8 @@ cp .env.example .env
 docker compose up --build
 ```
 
-Then open:
-
-- [http://127.0.0.1:8000/health/](http://127.0.0.1:8000/health/)
-- [http://127.0.0.1:8000/api/docs/](http://127.0.0.1:8000/api/docs/)
-
-The `web` service runs migrations and collects static files before starting
-Gunicorn.
+- Health: http://127.0.0.1:8000/health/
+- Swagger: http://127.0.0.1:8000/api/docs/
 
 ### App on the host, database in Docker
 
@@ -79,12 +119,11 @@ cp .env.example .env
 docker compose up -d postgres
 uv sync --group dev
 uv run python src/manage.py migrate
-uv run python src/manage.py check
 uv run pytest
 uv run python src/manage.py runserver
 ```
 
-Optional quality checks:
+Quality checks:
 
 ```bash
 uv run ruff format .
@@ -92,132 +131,54 @@ uv run ruff check .
 uv run mypy
 ```
 
-Stop the local stack with:
-
 ```bash
 docker compose down
 ```
 
 ## Settings
 
-There is a single settings module: `config.settings`.
+Single module: `config.settings`. Local, CI, staging, and production differ
+only by environment variables — every required value is explicit (no silent
+fallbacks). See `.env.example`.
 
-Runtime differences between local, CI, staging, and production come only from
-environment variables. Every required variable must be set explicitly; there
-are no configuration fallbacks.
-
-Local development and CI use the PostgreSQL service defined in `compose.yaml`.
-The Compose `web` service overrides `DATABASE_URL` so the app reaches Postgres
-on the internal Docker network.
-
-## Container image
-
-```bash
-docker build -t mars-rover-api .
-```
-
-The image entrypoint waits for the database, runs migrations, collects static
-files, and then starts Gunicorn. The process listens on `PORT` when that
-variable is set, otherwise on `8000`.
-
-## Render environments
-
-`render.yaml` defines one Render project with two environments:
-
-| Environment | Git branch | Database | Deploy trigger |
-| --- | --- | --- | --- |
-| staging | `develop` | Neon (`DATABASE_URL`) | after CI checks pass |
-| production | `main` | Neon (`DATABASE_URL`) | after CI checks pass |
-
-Both web services run on Render. Both databases run on Neon so staging and
-production stay consistent and avoid Render's single free Postgres limit.
-
-### Neon databases
-
-1. Create an account at [Neon](https://console.neon.tech).
-2. Create a project (example name: `mars-rover-api`) in your preferred region.
-3. Create two databases in that project, for example:
-   - `mars_rover_staging`
-   - `mars_rover_production`
-4. Open **Connect** for each database and copy the Postgres URI.
-5. Prefer URIs that include SSL, for example:
-   `postgresql://USER:PASSWORD@HOST/mars_rover_staging?sslmode=require`
-
-### First-time setup
-
-1. Push this repository to GitHub.
-2. Create the Neon databases and copy each `DATABASE_URL`.
-3. In Render, create a Blueprint from `render.yaml`.
-4. When prompted, set exact values only:
-   - staging `ALLOWED_HOSTS`: `web-staging.onrender.com`
-   - staging `CSRF_TRUSTED_ORIGINS`: `https://web-staging.onrender.com`
-   - staging `DATABASE_URL`: Neon staging URI
-   - staging `CORS_ALLOWED_ORIGINS`: front origin(s), e.g. `http://localhost:3000`
-   - production `ALLOWED_HOSTS`: `web-production.onrender.com`
-   - production `CSRF_TRUSTED_ORIGINS`: `https://web-production.onrender.com`
-   - production `DATABASE_URL`: Neon production URI
-   - production `CORS_ALLOWED_ORIGINS`: deployed front origin(s)
-5. If Render assigns a hostname with a suffix, use that exact host/origin instead.
-6. Do not use wildcards such as `.onrender.com` or `*`.
-7. Confirm `/health/` and `/api/docs/` on staging and production.
-
-## CI and CD
-
-GitHub Actions runs formatting, linting, type checks, and tests on pull
-requests and on pushes to `develop` / `main`. Required check names are always
-`Format`, `Lint`, `Types`, and `Tests`. Concurrent runs for the same commit are
-cancelled so those names are not duplicated.
-
-Workflows that open pull requests must use a personal access token stored as
-the repository secret `GH_WORKFLOW_TOKEN`. The default `GITHUB_TOKEN` cannot
-reliably start required checks on PRs that Actions itself opens.
-
-Create a classic or fine-grained PAT with permission to create pull requests on
-this repository, then add it at
-[Settings → Secrets and variables → Actions](https://github.com/milena-santos/mars-rover-api/settings/secrets/actions)
-as `GH_WORKFLOW_TOKEN`.
-
-Continuous delivery is handled by Render:
-
-- merge to `develop` → CI passes → staging deploy
-- merge to `main` → CI passes → production deploy + GitHub Release
-
-`develop` and `main` require the CI checks to pass before merge.
-
-## Development workflow
-
-- `main` represents production.
-- `develop` represents staging.
-- Work is performed in short-lived branches created from `develop`.
-- Every change reaches a permanent branch through a pull request.
-- Merged short-lived branches are deleted automatically.
-
-Branch names follow these conventions:
-
-```text
-feature/short-description
-fix/short-description
-chore/short-description
-docs/short-description
-refactor/short-description
-test/short-description
-hotfix/short-description
-```
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the complete contribution workflow.
+Compose wires Postgres on host port `5433` locally (container port `5432`) so
+it does not clash with a local Postgres install.
 
 ## Technology
 
-- Django 5.2 LTS
-- Django REST Framework
-- PostgreSQL
-- Pytest and Coverage.py
-- Ruff and Mypy
-- Docker
-- Gunicorn and WhiteNoise
-- GitHub Actions
-- Render
+- Django 5.2 LTS + Django REST Framework + drf-spectacular
+- PostgreSQL (local Compose; Neon in staging/production)
+- Pytest + Coverage.py (≥ 80%)
+- Ruff + Mypy
+- Docker, Gunicorn, WhiteNoise
+- GitHub Actions → Render
+
+## Deploy (Render)
+
+`render.yaml` defines staging (`develop`) and production (`main`). Databases
+run on Neon.
+
+When creating the Blueprint, set at least:
+
+| Variable | Staging example | Production example |
+| --- | --- | --- |
+| `ALLOWED_HOSTS` | `web-staging-pntn.onrender.com` | `web-production-gbuy.onrender.com` |
+| `CSRF_TRUSTED_ORIGINS` | `https://web-staging-pntn.onrender.com` | `https://web-production-gbuy.onrender.com` |
+| `CORS_ALLOWED_ORIGINS` | front staging origin(s) | `https://mars-rover-web-prod.vercel.app` |
+| `DATABASE_URL` | Neon staging URI | Neon production URI |
+
+Use the exact Render hostname (including any suffix). No wildcards.
+
+## CI and CD
+
+GitHub Actions runs **Format**, **Lint**, **Types**, and **Tests** on PRs and
+on pushes to `develop` / `main`.
+
+- merge to `develop` → CI → staging deploy
+- merge to `main` → CI → production deploy
+
+Branch workflow and PR automation details: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+[MIT](LICENSE)
