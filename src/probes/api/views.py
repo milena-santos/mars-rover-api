@@ -18,13 +18,25 @@ from probes.api.serializers import (
     ProbeListResponseSerializer,
     ProbeStateSerializer,
 )
+from probes.application.move_result import CollisionOutcome, MoveSuccess
 from probes.application.services import ProbeService
 from probes.domain.direction import Direction
+from probes.domain.probe import Probe
 from probes.infrastructure.repositories import DjangoProbeRepository
 
 
 def build_probe_service() -> ProbeService:
     return ProbeService(repository=DjangoProbeRepository())
+
+
+def collision_payload(result: CollisionOutcome) -> dict[str, object]:
+    return {
+        "event": "collision",
+        "detail": "Collision destroyed both probes.",
+        "x": result.position.x,
+        "y": result.position.y,
+        "destroyed": list(result.destroyed),
+    }
 
 
 class ProbeListCreateView(APIView):
@@ -47,17 +59,26 @@ class ProbeListCreateView(APIView):
     def post(self, request: Request) -> Response:
         serializer = LaunchProbeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        probe = build_probe_service().launch(
+        result = build_probe_service().launch(
             max_x=serializer.validated_data["x"],
             max_y=serializer.validated_data["y"],
-            landing_x=serializer.validated_data["landing_x"],
-            landing_y=serializer.validated_data["landing_y"],
             direction=Direction(serializer.validated_data["direction"]),
         )
+        if isinstance(result, CollisionOutcome):
+            return Response(collision_payload(result))
+        assert isinstance(result, Probe)
         return Response(
-            ProbeStateSerializer.from_probe(probe),
+            ProbeStateSerializer.from_probe(result),
             status=status.HTTP_201_CREATED,
         )
+
+    @extend_schema(
+        summary="Clear all probes",
+        responses={204: None},
+    )
+    def delete(self, request: Request) -> Response:
+        build_probe_service().clear_all()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ProbeDetailView(APIView):
@@ -87,13 +108,18 @@ class ProbeMoveView(APIView):
     @extend_schema(
         summary="Move probe",
         request=MoveProbeSerializer,
-        responses={200: ProbeStateSerializer},
+        responses={
+            200: ProbeStateSerializer,
+        },
     )
     def post(self, request: Request, probe_id: UUID) -> Response:
         serializer = MoveProbeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        probe = build_probe_service().move(
+        result = build_probe_service().move(
             probe_id=probe_id,
             commands=serializer.validated_data["commands"],
         )
-        return Response(ProbeStateSerializer.from_probe(probe))
+        if isinstance(result, CollisionOutcome):
+            return Response(collision_payload(result))
+        assert isinstance(result, MoveSuccess)
+        return Response(ProbeStateSerializer.from_probe(result.probe))
